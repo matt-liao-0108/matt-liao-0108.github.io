@@ -1,0 +1,41 @@
+[
+  {
+    "city": "Sapporo",
+    "file": "images/sapporo.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:SapporoCity_Skylines2020.jpg",
+    "author": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:Nryate&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:Nryate (page does not exist)\">Nryate</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  {
+    "city": "Tokyo",
+    "file": "images/tokyo.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Skyscrapers_of_Shinjuku_2009_January.jpg",
+    "author": "<a href=\"//commons.wikimedia.org/wiki/User:Morio\" title=\"User:Morio\">Morio</a>",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/"
+  },
+  {
+    "city": "Osaka",
+    "file": "images/osaka.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Osaka_Castle_03bs3200.jpg",
+    "author": "<a href=\"https://ja.wikipedia.org/wiki/user:663highland\" class=\"extiw\" title=\"ja:user:663highland\">663highland</a>",
+    "license": "CC BY 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.5"
+  },
+  {
+    "city": "Fukuoka",
+    "file": "images/fukuoka.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Fukuoka_Skyline_of_Seaside_Momochi.jpg",
+    "author": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:Nryate&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:Nryate (page does not exist)\">Nryate</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  {
+    "city": "Moscow",
+    "file": "images/moscow.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Saint_Basil%27s_Cathedral_and_the_Red_Square.jpg",
+    "author": "U.S. Department of State",
+    "license": "Public domain"
+  }
+]
