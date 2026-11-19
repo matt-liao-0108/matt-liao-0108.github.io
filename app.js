@@ -19,56 +19,41 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const coordinates = c => `${Math.abs(c.lat).toFixed(4)}° ${c.lat < 0 ? 'S' : 'N'} / ${Math.abs(c.lon).toFixed(4)}° ${c.lon < 0 ? 'W' : 'E'}`;
 $('year').textContent = new Date().getFullYear();
 
-const countries = [['japan', '日本'], ['russia', '俄罗斯'], ['thailand', '泰国']];
+const countryOrder = ['japan', 'russia', 'thailand'];
 
 function renderChips() {
   const host = $('city-chips');
+  const scrollLeft = host.scrollLeft;
   host.replaceChildren();
-  for (const [country, name] of countries) {
-    if (activeFilter !== 'all' && activeFilter !== country) continue;
-    const row = document.createElement('div');
-    row.className = 'city-chip-row';
-    if (activeFilter === 'all') {
-      const group = document.createElement('div');
-      group.className = 'city-group';
-      const heading = document.createElement('span');
-      heading.className = 'city-group-name';
-      heading.textContent = name;
-      group.append(heading, row);
-      host.append(group);
-    } else {
-      host.append(row);
-    }
-    for (const city of cities.filter(item => item.country === country)) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.classList.add('city-chip');
-      button.classList.toggle('active', selected === city);
-      button.classList.toggle('together', Boolean(city.together));
-      button.textContent = city.name;
-      button.setAttribute('aria-label', `探索${city.name}${city.together ? '，一起去过' : ''}，${coordinates(city)}`);
-      button.setAttribute('aria-pressed', String(selected === city));
-      button.onclick = () => selectCity(city, true);
-      row.append(button);
-    }
+  for (const city of visibleCities()) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.classList.add('city-chip');
+    button.classList.toggle('active', selected === city);
+    button.classList.toggle('together', Boolean(city.together));
+    button.textContent = city.name;
+    button.setAttribute('aria-label', `探索${city.name}${city.together ? '，一起去过' : ''}，${coordinates(city)}`);
+    button.setAttribute('aria-pressed', String(selected === city));
+    button.onclick = () => selectCity(city);
+    host.append(button);
   }
+  host.scrollLeft = scrollLeft;
 }
 function visibleCities() {
-  return countries.flatMap(([country]) => activeFilter === 'all' || activeFilter === country
+  return countryOrder.flatMap(country => activeFilter === 'all' || activeFilter === country
     ? cities.filter(city => city.country === country) : []);
 }
-function selectCity(city, open = false) {
+function selectCity(city) {
   selected = city;
   $('preview-image').src = city.image; $('preview-image').alt = `${city.name}相册占位示例照片`;
+  $('preview-photo').setAttribute('aria-label', `打开${city.name}手记`);
   $('preview-country').textContent = city.region;
   $('preview-title').replaceChildren(document.createTextNode(city.name));
   const en = document.createElement('span'); en.textContent = city.en; $('preview-title').append(en);
   $('preview-coordinates').textContent = coordinates(city);
   $('preview-description').textContent = city.story;
   renderChips();
-  if (globeApi) {
-    globeApi.focus(city, open ? () => { if (selected === city) openCity(); } : null);
-  } else if (open) openCity();
+  globeApi?.focus(city);
 }
 function switchTab(tab) {
   document.querySelectorAll('[data-tab]').forEach(b => { b.classList.toggle('active', b.dataset.tab === tab); b.setAttribute('aria-pressed', String(b.dataset.tab === tab)); });
@@ -93,7 +78,9 @@ function openCity() {
     figure.append(button, cap);
     return figure;
   }));
-  switchTab('memories'); if (!dialog.open) dialog.showModal(); dialog.scrollTop = 0;
+  switchTab('memories');
+  if (!dialog.open) dialog.showModal();
+  $('city-dialog-scroll').scrollTop = 0;
 }
 document.querySelectorAll('[data-filter]').forEach(b => b.onclick = () => {
   activeFilter = b.dataset.filter;
@@ -102,18 +89,21 @@ document.querySelectorAll('[data-filter]').forEach(b => b.onclick = () => {
   if (activeFilter !== 'all') selectCity(cities.find(c => c.country === activeFilter));
 });
 document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
-['preview-photo','preview-title','open-city'].forEach(id => $(id).onclick = openCity);
+$('preview-photo').onclick = openCity;
 $('close-city').onclick = () => dialog.close();
 $('next-city').onclick = () => {
   const list = visibleCities();
   dialog.close();
-  selectCity(list[(list.indexOf(selected) + 1) % list.length], true);
+  selectCity(list[(list.indexOf(selected) + 1) % list.length]);
 };
 $('open-about').onclick = () => $('about-dialog').showModal();
 $('close-about').onclick = () => $('about-dialog').close();
 document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) { const r = d.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) d.close(); } }));
 $('open-directory').onclick = () => $('cities').scrollIntoView({ behavior: reduced ? 'instant' : 'smooth', block: 'center' });
-$('start-explore').onclick = () => { const choices = cities.filter(c => c.id !== selected.id && (activeFilter === 'all' || c.country === activeFilter)); selectCity(choices[Math.floor(Math.random() * choices.length)], true); };
+$('start-explore').onclick = () => {
+  const choices = visibleCities().filter(city => city !== selected);
+  if (choices.length) selectCity(choices[Math.floor(Math.random() * choices.length)]);
+};
 renderChips(); selectCity(selected);
 
 const R = 2;
@@ -330,7 +320,7 @@ async function initGlobe() {
     if (c.together) label.setAttribute('aria-label', `${c.name}，一起去过`);
     label.hidden = true;
     label.textContent = c.name;
-    label.onclick = () => selectCity(c, true);
+    label.onclick = () => selectCity(c);
     const sub = document.createElement('small');
     sub.textContent = c.en;
     label.append(sub);
@@ -358,11 +348,11 @@ async function initGlobe() {
   $('toggle-rotation').onclick = () => { cancelFlight(); setAuto(!auto); };
   $('reset-globe').onclick=()=>{flight=null;target=home.clone();stopAuto();zoom=1;resize();};
   globeApi = {
-    focus(city, done) {
+    focus(city) {
       target = null;
       const destination = facingCity(city.lat, city.lon);
       flight = { from: globe.quaternion.clone(), destination, start: performance.now(),
-        duration: reduced ? 0 : THREE.MathUtils.clamp(210 + globe.quaternion.angleTo(destination) * 140, 240, 650), done };
+        duration: reduced ? 0 : THREE.MathUtils.clamp(210 + globe.quaternion.angleTo(destination) * 140, 240, 650) };
       weather.showCity(city);
       stopAuto();
     }
@@ -385,7 +375,7 @@ async function initGlobe() {
       const distance = Math.hypot(e.clientX - rect.left - marker.screenPoint.x, e.clientY - rect.top - marker.screenPoint.y);
       if (distance < bestDistance) { nearest = marker; bestDistance = distance; }
     }
-    if (nearest) selectCity(nearest.city, true);
+    if (nearest) selectCity(nearest.city);
   }
   canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);dragging=false;moved=100;});canvas.addEventListener('lostpointercapture',e=>{pointers.delete(e.pointerId);if(!pointers.size)dragging=false;});
   canvas.addEventListener('wheel',e=>{e.preventDefault();setZoom(-e.deltaY*.0007);},{passive:false});
@@ -394,13 +384,7 @@ async function initGlobe() {
     if (flight && !dragging && now >= flight.start) {
       const progress = flight.duration ? Math.min(1, (now - flight.start) / flight.duration) : 1;
       globe.quaternion.slerpQuaternions(flight.from, flight.destination, 1 - (1 - progress) ** 3);
-      if (progress === 1) {
-        const finished = flight;
-        flight = null;
-        if (finished.done) requestAnimationFrame(() => {
-          if (!flight && !dragging && globe.quaternion.angleTo(finished.destination) < .001) finished.done();
-        });
-      }
+      if (progress === 1) flight = null;
     }
     const labels = $('globe-labels');
     if (auto && !dragging && !document.querySelector('dialog[open]') &&
