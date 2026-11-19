@@ -19,16 +19,43 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const coordinates = c => `${Math.abs(c.lat).toFixed(4)}° ${c.lat < 0 ? 'S' : 'N'} / ${Math.abs(c.lon).toFixed(4)}° ${c.lon < 0 ? 'W' : 'E'}`;
 $('year').textContent = new Date().getFullYear();
 
+const countries = [['japan', '日本'], ['russia', '俄罗斯'], ['thailand', '泰国']];
+
 function renderChips() {
-  const host = $('city-chips'); host.replaceChildren();
-  cities.filter(c => activeFilter === 'all' || c.country === activeFilter).forEach(c => {
-    const b = document.createElement('button'); b.className = `city-chip${selected.id === c.id ? ' active' : ''}`;
-    b.textContent = c.name; b.setAttribute('aria-label', `探索${c.name}，${coordinates(c)}`); b.setAttribute('aria-pressed', String(selected.id === c.id));
-    b.onclick = () => selectCity(c, true); host.append(b);
-  });
+  const host = $('city-chips');
+  host.replaceChildren();
+  for (const [country, name] of countries) {
+    if (activeFilter !== 'all' && activeFilter !== country) continue;
+    const row = document.createElement('div');
+    row.className = 'city-chip-row';
+    if (activeFilter === 'all') {
+      const group = document.createElement('div');
+      group.className = 'city-group';
+      const heading = document.createElement('span');
+      heading.className = 'city-group-name';
+      heading.textContent = name;
+      group.append(heading, row);
+      host.append(group);
+    } else {
+      host.append(row);
+    }
+    for (const city of cities.filter(item => item.country === country)) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.classList.add('city-chip');
+      button.classList.toggle('active', selected === city);
+      button.classList.toggle('together', Boolean(city.together));
+      button.textContent = city.name;
+      button.setAttribute('aria-label', `探索${city.name}${city.together ? '，一起去过' : ''}，${coordinates(city)}`);
+      button.setAttribute('aria-pressed', String(selected === city));
+      button.onclick = () => selectCity(city, true);
+      row.append(button);
+    }
+  }
 }
 function visibleCities() {
-  return cities.filter(city => activeFilter === 'all' || city.country === activeFilter);
+  return countries.flatMap(([country]) => activeFilter === 'all' || activeFilter === country
+    ? cities.filter(city => city.country === country) : []);
 }
 function selectCity(city, open = false) {
   selected = city;
@@ -257,11 +284,41 @@ async function initGlobe() {
   let seed=1841;const rand=()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646;};
   for(let i=0;i<90;i++){const loc=landCenters[Math.floor(rand()*landCenters.length)];if(!loc||Math.abs(loc.lat)>73||cities.some(c=>ll(c.lat,c.lon,1).distanceTo(ll(loc.lat,loc.lon,1))<.12))continue;const tree=new THREE.Group();cyl(tree,0,.035,0,.008,.009,.07,'#8e8760',5);ball(tree,0,.095,0,.047,rand()>.5?'#759365':'#8ca26c');if(i%3===0)ball(tree,.023,.075,.01,.03,'#9aac7b');tree.scale.setScalar(.7+rand()*.9);place(tree,loc.lat,loc.lon);}
   for(const [lat,lon] of [[28,79],[45,82],[-12,23],[53,-105],[-25,135],[6,-66]]){const rocks=new THREE.Group();cone(rocks,0,.09,0,.11,.19,'#92a079',5);cone(rocks,.09,.045,.01,.065,.11,'#a1ad83',4);place(rocks,lat,lon);}
+  const heartCanvas = document.createElement('canvas');
+  heartCanvas.width = heartCanvas.height = 96;
+  const heart = heartCanvas.getContext('2d');
+  heart.beginPath();
+  heart.moveTo(48, 81);
+  heart.bezierCurveTo(42, 75, 9, 53, 9, 33);
+  heart.bezierCurveTo(9, 11, 35, 8, 48, 28);
+  heart.bezierCurveTo(61, 8, 87, 11, 87, 33);
+  heart.bezierCurveTo(87, 53, 54, 75, 48, 81);
+  heart.closePath();
+  heart.fillStyle = '#ca536e';
+  heart.strokeStyle = '#fff2ec';
+  heart.lineWidth = 6;
+  heart.lineJoin = 'round';
+  heart.fill();
+  heart.stroke();
+  const heartTexture = new THREE.CanvasTexture(heartCanvas);
+  heartTexture.colorSpace = THREE.SRGBColorSpace;
+  const heartMaterial = new THREE.SpriteMaterial({ map: heartTexture, depthWrite: false, toneMapped: false });
   const markers=[];
   for(const c of cities){
     const anchor=new THREE.Group();place(anchor,c.lat,c.lon,2.04);
     const ring=part(anchor,new THREE.RingGeometry(.032,.043,28), '#edb88a',0,.007,0);ring.rotation.x=-Math.PI/2;ring.material=new THREE.MeshBasicMaterial({color:'#d99962',side:THREE.DoubleSide,transparent:true,opacity:.8});
-    const pin=ball(anchor,0,.047,0,.027,'#d48152');pin.material=new THREE.MeshBasicMaterial({color:'#e39b65'});
+    const pin = new THREE.Group();
+    pin.position.y = .047;
+    if (c.together) {
+      const sprite = new THREE.Sprite(heartMaterial);
+      sprite.scale.setScalar(.13);
+      pin.add(sprite);
+      ring.material.color.set('#ca536e');
+    } else {
+      const dot = ball(pin,0,0,0,.027,'#d48152');
+      dot.material = new THREE.MeshBasicMaterial({color:'#e39b65'});
+    }
+    anchor.add(pin);
     const model = landmark(c.model);
     // The anchor stays above the surface for the pin. Sink the pedestal into the raised land.
     model.position.y = R * 1.007 - anchor.position.length();
@@ -269,6 +326,8 @@ async function initGlobe() {
     const label = document.createElement('button');
     label.type = 'button';
     label.className = 'city-label';
+    label.classList.toggle('together', Boolean(c.together));
+    if (c.together) label.setAttribute('aria-label', `${c.name}，一起去过`);
     label.hidden = true;
     label.textContent = c.name;
     label.onclick = () => selectCity(c, true);

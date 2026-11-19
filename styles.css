@@ -53,6 +53,17 @@
 }
 .city-label { pointer-events: auto; min-height: 32px; }
 .city-label:hover { border-color: var(--orange); }
+.city-chips { display: grid; gap: 10px; }
+.city-group { display: grid; grid-template-columns: 4.2rem minmax(0, 1fr); align-items: start; gap: 8px; }
+.city-group-name { font-size: .8125rem; font-weight: 600; padding-top: 9px; }
+.city-chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.together-legend { grid-column: 2; margin: 0; font-size: .8125rem; color: #566756; }
+.together-legend span { color: #b6435d; margin-right: 3px; }
+.city-chip.together::before, .city-label.together::before {
+  content: '♥'; width: auto; height: auto; background: none; color: #b6435d; line-height: 1;
+}
+.city-label.together.selected::before { color: #ffb0bf; }
+@media (max-width: 850px) { .together-legend { margin-top: 16px; } }
 .country-tooltip {
   position: absolute;
   top: 0;
