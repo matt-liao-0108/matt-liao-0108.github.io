@@ -1,16 +1,106 @@
 import * as THREE from './vendor/three.module.min.js';
-import { cities } from './data/cities.js';
+import { cities } from './data/cities.js?v=20261120-2';
 import { createCountryLayer } from './country-layer.js';
 import { createWeatherLayer } from './weather.js';
 
 const $ = id => document.getElementById(id);
 const dialog = $('city-dialog');
 const photoDialog = $('photo-dialog');
-function previewPhoto(src, description, caption) {
+const photoStage = $('full-photo-stage');
+const liveVideo = $('full-photo-video');
+const liveBadge = $('full-photo-live');
+let liveSource;
+let liveHold;
+let livePlayback = 0;
+const liveHoldDelay = 400;
+const liveMoveTolerance = 12;
+liveBadge.title = '播放实况，也可长按照片';
+
+function stopLivePhoto() {
+  livePlayback += 1;
+  liveVideo.pause();
+  liveVideo.hidden = true;
+  liveBadge.setAttribute('aria-pressed', 'false');
+}
+
+async function playLivePhoto() {
+  if (!liveSource) return;
+  const attempt = ++livePlayback;
+  if (!liveVideo.hasAttribute('src')) liveVideo.src = liveSource;
+  liveVideo.muted = false;
+  liveVideo.currentTime = 0;
+  liveBadge.setAttribute('aria-pressed', 'true');
+
+  try {
+    await liveVideo.play();
+  } catch (error) {
+    if (attempt !== livePlayback || error.name === 'AbortError') return;
+    if (error.name === 'NotAllowedError') {
+      liveVideo.muted = true;
+      try {
+        await liveVideo.play();
+        return;
+      } catch (retryError) {
+        if (attempt !== livePlayback || retryError.name === 'AbortError') return;
+      }
+    }
+    stopLivePhoto();
+  }
+}
+
+function finishLiveHold(event) {
+  if (!liveHold || (event && liveHold.pointerId !== event.pointerId)) return;
+  if (liveHold.timer !== undefined) clearTimeout(liveHold.timer);
+  else stopLivePhoto();
+  liveHold = undefined;
+}
+
+liveVideo.onplaying = () => { if (!liveVideo.paused) liveVideo.hidden = false; };
+liveVideo.onended = stopLivePhoto;
+
+photoStage.onpointerdown = event => {
+  if (!liveSource || liveHold || !event.isPrimary || event.button !== 0 || liveBadge.contains(event.target)) return;
+  photoStage.setPointerCapture(event.pointerId);
+  liveHold = {
+    pointerId: event.pointerId,
+    x: event.clientX,
+    y: event.clientY,
+    timer: setTimeout(() => {
+      liveHold.timer = undefined;
+      playLivePhoto();
+    }, liveHoldDelay)
+  };
+};
+photoStage.onpointermove = event => {
+  if (!liveHold || liveHold.timer === undefined || event.pointerId !== liveHold.pointerId) return;
+  if (Math.hypot(event.clientX - liveHold.x, event.clientY - liveHold.y) > liveMoveTolerance) finishLiveHold(event);
+};
+photoStage.onpointerup = finishLiveHold;
+photoStage.onpointercancel = finishLiveHold;
+photoStage.onlostpointercapture = finishLiveHold;
+photoStage.oncontextmenu = event => { if (liveSource) event.preventDefault(); };
+
+liveBadge.onclick = () => {
+  if (liveBadge.getAttribute('aria-pressed') === 'true') stopLivePhoto();
+  else playLivePhoto();
+};
+photoDialog.addEventListener('close', () => {
+  finishLiveHold();
+  stopLivePhoto();
+  liveSource = undefined;
+  if (!liveVideo.hasAttribute('src')) return;
+  liveVideo.removeAttribute('src');
+  liveVideo.load();
+});
+
+function previewPhoto(src, description, caption, videoSrc) {
   const image = $('full-photo');
   image.src = src;
   image.alt = description;
-  $('full-photo-caption').textContent = caption;
+  liveSource = videoSrc;
+  liveBadge.hidden = !liveSource;
+  photoStage.classList.toggle('has-live', Boolean(liveSource));
+  $('full-photo-caption').textContent = liveSource ? `${caption} · 长按照片播放实况` : caption;
   photoDialog.showModal();
 }
 $('close-photo').onclick = () => photoDialog.close();
@@ -23,7 +113,6 @@ const countryOrder = ['japan', 'russia', 'thailand'];
 
 function renderChips() {
   const host = $('city-chips');
-  const scrollLeft = host.scrollLeft;
   host.replaceChildren();
   for (const city of visibleCities()) {
     const button = document.createElement('button');
@@ -37,7 +126,6 @@ function renderChips() {
     button.onclick = () => selectCity(city);
     host.append(button);
   }
-  host.scrollLeft = scrollLeft;
 }
 function visibleCities() {
   return countryOrder.flatMap(country => activeFilter === 'all' || activeFilter === country
@@ -45,7 +133,9 @@ function visibleCities() {
 }
 function selectCity(city) {
   selected = city;
-  $('preview-image').src = city.image; $('preview-image').alt = `${city.name}相册占位示例照片`;
+  $('preview-image').src = city.image;
+  $('preview-image').alt = city.photos?.length ? `${city.name}旅行照片` : `${city.name}相册占位示例照片`;
+  $('preview-photo-note').hidden = Boolean(city.photos?.length);
   $('preview-photo').setAttribute('aria-label', `打开${city.name}手记`);
   $('preview-country').textContent = city.region;
   $('preview-title').replaceChildren(document.createTextNode(city.name));
@@ -61,20 +151,32 @@ function switchTab(tab) {
 }
 function openCity() {
   const c = selected;
-  $('city-cover').src = c.image; $('city-cover').alt = `${c.name}相册占位示例`;
+  const hasTripPhotos = Boolean(c.photos?.length);
+  $('city-cover').src = c.image;
+  $('city-cover').alt = hasTripPhotos ? `${c.name}旅行照片` : `${c.name}相册占位示例`;
+  $('city-cover-note').hidden = hasTripPhotos;
+  $('city-placeholder-note').hidden = hasTripPhotos;
   $('city-region').textContent = c.region; $('city-dialog-title').textContent = c.name; $('city-english').textContent = c.en;
   $('city-coordinates').textContent = coordinates(c); $('city-lead').textContent = c.story;
   $('city-landmark').textContent = `星球上的小建筑 · ${c.landmark}`;
-  const photos = c.photos || [c.image, c.country === 'japan' ? 'images/osaka.jpg' : c.country === 'russia' ? 'images/saint-petersburg.jpg' : 'images/bangkok.jpg'];
+  const photos = hasTripPhotos ? c.photos : [c.image, c.country === 'japan' ? 'images/osaka.jpg' : c.country === 'russia' ? 'images/saint-petersburg.jpg' : 'images/bangkok.jpg'];
   $('city-photos').replaceChildren(...photos.map((src, i) => {
-    const figure = document.createElement('figure'); const img = document.createElement('img'); img.src = src; img.alt = `${c.name}相册占位照片 ${i + 1}`; img.loading = 'lazy';
-    const cap = document.createElement('figcaption'); cap.textContent = `旅行相册 ${String(i + 1).padStart(2, '0')} · 示例占位`;
+    const figure = document.createElement('figure'); const img = document.createElement('img'); img.src = src; img.alt = `${c.name}${hasTripPhotos ? '旅行照片' : '相册占位照片'} ${i + 1}`; img.loading = 'lazy';
+    const cap = document.createElement('figcaption'); cap.textContent = hasTripPhotos ? `${c.name} · 旅行实拍` : `旅行相册 ${String(i + 1).padStart(2, '0')} · 示例占位`;
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'photo-preview';
-    button.setAttribute('aria-label', `放大第 ${i + 1} 张照片`);
-    button.onclick = () => previewPhoto(src, img.alt, cap.textContent);
+    const videoSrc = c.livePhotos?.[src];
+    button.setAttribute('aria-label', `放大第 ${i + 1} 张照片${videoSrc ? '（实况）' : ''}`);
+    button.onclick = () => previewPhoto(src, img.alt, cap.textContent, videoSrc);
     button.append(img);
+    if (videoSrc) {
+      const badge = document.createElement('span');
+      badge.className = 'live-badge';
+      badge.setAttribute('aria-hidden', 'true');
+      badge.textContent = 'LIVE';
+      button.append(badge);
+    }
     figure.append(button, cap);
     return figure;
   }));
@@ -164,6 +266,14 @@ function landmark(type) {
       windowRow(g,[-s*.19,0,s*.19],floor,s*.35+.002,s*.11,.025);
     }
     ball(g,0,.42,0,.015,gold);
+  } else if(type==='pagoda') {
+    for (const [width, height] of [[.25,.09],[.20,.19],[.15,.29]]) {
+      box(g,0,height,0,width*.58,.09,width*.58,'#bb5841');
+      box(g,0,height+.04,0,width,.012,width,red);
+      const tier=cone(g,0,height+.062,0,width/Math.SQRT2,.045,'#455b55',4);
+      tier.rotation.y=Math.PI/4;
+    }
+    cyl(g,0,.38,0,.005,.008,.07,gold,6);
   } else if(type==='clock') {
     box(g,0,.075,0,.26,.13,.15,cream); const m=cone(g,0,.17,0,.19,.1,red);m.scale.z=.65;m.rotation.y=Math.PI/4;
     box(g,0,.21,0,.075,.13,.07,cream); cone(g,0,.31,0,.075,.1,red); const face=cyl(g,0,.255,.037,.021,.021,.004,'#fff7df',12); face.rotation.x=Math.PI/2;
@@ -188,6 +298,13 @@ function landmark(type) {
     pediment.rotation.y=Math.PI/4;
     pediment.scale.z=.36;
     cyl(g,0,.286,0,.085,.085,.012,'#a88443',12);
+  } else if(type==='waterfall') {
+    box(g,0,.04,0,.27,.02,.23,'#6ba4a6');
+    for (const [x,height] of [[-.09,.18],[0,.22],[.09,.17]]) {
+      box(g,x,height/2+.04,-.045,.09,height,.12,'#78857b');
+      box(g,x,height+.043,-.045,.095,.018,.124,'#f2ebdb');
+      box(g,x+.012,height/2+.04,.019,.023,height,.012,'#c6e4e0');
+    }
   } else if(type==='garden') {
     box(g,0,.07,0,.22,.09,.16,cream);
     cone(g,0,.16,0,.18,.1,roof);
@@ -236,6 +353,7 @@ function landmark(type) {
 
 async function initGlobe() {
   const canvas=$('globe'), stage=$('globe-stage');
+  const hitArea = $('globe-hit-area');
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'low-power'});
   renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setClearColor(0x000000,0); renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.25;
   const scene=new THREE.Scene();
@@ -250,10 +368,10 @@ async function initGlobe() {
     })
     .then(countries => { countryLayer = createCountryLayer(countries, globe, R, ll); })
     .catch(error => console.warn('Country boundaries unavailable', error));
-  canvas.addEventListener('pointermove', event => {
+  hitArea.addEventListener('pointermove', event => {
     countryCursor = event.pointerType === 'touch' ? null : { x: event.clientX, y: event.clientY };
   });
-  canvas.addEventListener('pointerleave', () => { countryCursor = null; countryLayer?.clear(); });
+  hitArea.addEventListener('pointerleave', () => { countryCursor = null; countryLayer?.clear(); });
   const home = facingCity(32, 100);
   globe.quaternion.copy(home);
   const ocean=new THREE.Mesh(new THREE.IcosahedronGeometry(R,14),new THREE.MeshStandardMaterial({color:'#79b2b3',roughness:1,flatShading:true}));globe.add(ocean);
@@ -333,7 +451,33 @@ async function initGlobe() {
   const weather = createWeatherLayer(stage, cities);
   let target=null, flight=null, auto=!reduced, zoom=1, visible=true, dragging=false, prev=null, moved=0, last=performance.now(), raf;
   const pointers=new Map(); let pinch=0;
-  function resize(){const w=stage.clientWidth,h=stage.clientHeight,aspect=w/h;renderer.setSize(w,h,false);const mobile=w<=850;const size=mobile?(w<=520?.83:1):1;const span=mobile?Math.max(6,4*size/.96/aspect):5.49;camera.left=-span*aspect/2;camera.right=span*aspect/2;camera.top=span/2;camera.bottom=-span/2;camera.zoom=zoom;camera.updateProjectionMatrix();world.position.set(0,.12,0);globe.scale.setScalar(size);shadow.scale.setScalar(size);}
+  const compactLayout = matchMedia('(max-width: 850px)');
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    if (!w || !h) return;
+    const aspect = w / h;
+    const size = matchMedia('(max-width: 520px)').matches ? .83 : 1;
+    const diameter = 2 * R * size;
+    const span = Math.max(compactLayout.matches ? 6 : 5.49, diameter / (.83 * aspect));
+    const maxZoom = span * Math.min(.89, .93 * aspect) / diameter;
+    zoom = Math.min(zoom, maxZoom);
+    renderer.setSize(w, h, false);
+    camera.left = -span * aspect / 2;
+    camera.right = span * aspect / 2;
+    camera.top = span / 2;
+    camera.bottom = -span / 2;
+    camera.zoom = zoom;
+    camera.updateProjectionMatrix();
+    world.position.set(0,.12,0);
+    globe.scale.setScalar(size);
+    shadow.scale.setScalar(size);
+
+    // Match the hit area to the orthographic projection, with a small touch margin.
+    const pixelsPerUnit = h * zoom / span;
+    const hitDiameter = diameter * pixelsPerUnit + 16;
+    hitArea.style.width = hitArea.style.height = `${hitDiameter}px`;
+    hitArea.style.top = `${h / 2 - world.position.y * pixelsPerUnit}px`;
+  }
   const resizeObserver=new ResizeObserver(resize);resizeObserver.observe(stage);resize();
   const setZoom=delta=>{zoom=THREE.MathUtils.clamp(zoom+delta,.8,1.55);resize();};
   $('zoom-in').onclick=()=>setZoom(.1);$('zoom-out').onclick=()=>setZoom(-.1);
@@ -357,9 +501,9 @@ async function initGlobe() {
       stopAuto();
     }
   };
-  canvas.tabIndex=0; canvas.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();cancelFlight();stopAuto();const axis=e.key.includes('Left')||e.key.includes('Right')?new THREE.Vector3(0,1,0):new THREE.Vector3(1,0,0);globe.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(axis,e.key==='ArrowLeft'||e.key==='ArrowUp'?.12:-.12));}if(e.key==='+'||e.key==='=')setZoom(.1);if(e.key==='-')setZoom(-.1);});
-  canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});dragging=true;prev={x:e.clientX,y:e.clientY};moved=pointers.size>1?100:0;cancelFlight();stopAuto();if(pointers.size===2){const p=[...pointers.values()];pinch=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);}});
-  canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===2){const p=[...pointers.values()];const distance=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);setZoom((distance-pinch)*.002);pinch=distance;moved=100;return;}if(!dragging)return;const dx=e.clientX-prev.x,dy=e.clientY-prev.y;moved+=Math.abs(dx)+Math.abs(dy);globe.quaternion.premultiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(dy*.005,dx*.005,0,'XYZ')));prev={x:e.clientX,y:e.clientY};});
+  hitArea.tabIndex=0; hitArea.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();cancelFlight();stopAuto();const axis=e.key.includes('Left')||e.key.includes('Right')?new THREE.Vector3(0,1,0):new THREE.Vector3(1,0,0);globe.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(axis,e.key==='ArrowLeft'||e.key==='ArrowUp'?.12:-.12));}if(e.key==='+'||e.key==='=')setZoom(.1);if(e.key==='-')setZoom(-.1);});
+  hitArea.addEventListener('pointerdown',e=>{if(e.button!==0)return;hitArea.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});dragging=true;prev={x:e.clientX,y:e.clientY};moved=pointers.size>1?100:0;cancelFlight();stopAuto();if(pointers.size===2){const p=[...pointers.values()];pinch=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);}});
+  hitArea.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===2){const p=[...pointers.values()];const distance=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);setZoom((distance-pinch)*.002);pinch=distance;moved=100;return;}if(!dragging)return;const dx=e.clientX-prev.x,dy=e.clientY-prev.y;moved+=Math.abs(dx)+Math.abs(dy);globe.quaternion.premultiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(dy*.005,dx*.005,0,'XYZ')));prev={x:e.clientX,y:e.clientY};});
   function up(e) {
     if (!pointers.has(e.pointerId)) return;
     const click = moved < 7 && pointers.size === 1;
@@ -377,9 +521,10 @@ async function initGlobe() {
     }
     if (nearest) selectCity(nearest.city);
   }
-  canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);dragging=false;moved=100;});canvas.addEventListener('lostpointercapture',e=>{pointers.delete(e.pointerId);if(!pointers.size)dragging=false;});
-  canvas.addEventListener('wheel',e=>{e.preventDefault();setZoom(-e.deltaY*.0007);},{passive:false});
-  canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();$('globe-fallback').hidden=false;cancelAnimationFrame(raf);});
+  hitArea.addEventListener('pointerup',up);hitArea.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);dragging=false;moved=100;});hitArea.addEventListener('lostpointercapture',e=>{pointers.delete(e.pointerId);if(!pointers.size)dragging=false;});
+  hitArea.addEventListener('wheel',e=>{e.preventDefault();setZoom(-e.deltaY*.0007);},{passive:false});
+  canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();hitArea.hidden=true;$('globe-fallback').hidden=false;cancelAnimationFrame(raf);});
+  hitArea.hidden = false;
   function frame(now){if(!visible){last=now;raf=requestAnimationFrame(frame);return;}const dt=Math.min((now-last)/1000,.05);last=now;if(target&&!dragging){if(reduced){globe.quaternion.copy(target);target=null;}else{globe.quaternion.slerp(target,1-Math.exp(-5*dt));if(globe.quaternion.angleTo(target)<.001)target=null;}}
     if (flight && !dragging && now >= flight.start) {
       const progress = flight.duration ? Math.min(1, (now - flight.start) / flight.duration) : 1;
@@ -412,7 +557,7 @@ async function initGlobe() {
       const lx = x + (chosen ? -48 : 12);
       const ly = y + (chosen ? -44 : -17);
       const clash = placed.some(p => Math.abs(p.x-lx)<115 && Math.abs(p.y-ly)<37);
-      const show = chosen || (!clash && rect.width > 600);
+      const show = chosen || (!clash && rect.width > 380);
       m.label.hidden = !show;
       if (show) {
         m.label.classList.toggle('selected', chosen);
