@@ -184,11 +184,19 @@ function openCity() {
   if (!dialog.open) dialog.showModal();
   $('city-dialog-scroll').scrollTop = 0;
 }
-document.querySelectorAll('[data-filter]').forEach(b => b.onclick = () => {
-  activeFilter = b.dataset.filter;
-  document.querySelectorAll('[data-filter]').forEach(el => { el.classList.toggle('active', el === b); el.setAttribute('aria-pressed', String(el === b)); });
-  renderChips();
-  if (activeFilter !== 'all') selectCity(cities.find(c => c.country === activeFilter));
+const countryFilters = document.querySelectorAll('[data-filter]');
+function setCountryFilter(filter) {
+  activeFilter = filter;
+  countryFilters.forEach(button => {
+    const isActive = button.dataset.filter === filter;
+    button.classList.toggle('active', isActive);
+    button.setAttribute('aria-pressed', String(isActive));
+  });
+}
+countryFilters.forEach(button => button.onclick = () => {
+  setCountryFilter(button.dataset.filter);
+  if (activeFilter === 'all') renderChips();
+  else selectCity(cities.find(city => city.country === activeFilter));
 });
 document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
 $('preview-photo').onclick = openCity;
@@ -203,8 +211,11 @@ $('close-about').onclick = () => $('about-dialog').close();
 document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) { const r = d.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) d.close(); } }));
 $('open-directory').onclick = () => $('cities').scrollIntoView({ behavior: reduced ? 'instant' : 'smooth', block: 'center' });
 $('start-explore').onclick = () => {
-  const choices = visibleCities().filter(city => city !== selected);
-  if (choices.length) selectCity(choices[Math.floor(Math.random() * choices.length)]);
+  const choices = cities.filter(city => city !== selected);
+  if (!choices.length) return;
+  const city = choices[Math.floor(Math.random() * choices.length)];
+  if (activeFilter !== 'all' && activeFilter !== city.country) setCountryFilter('all');
+  selectCity(city);
 };
 renderChips(); selectCity(selected);
 
