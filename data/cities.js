@@ -1,12 +1,12 @@
 // 所有照片暂为占位，可通过 photos 数组替换；story 为该城市的文案。
 export const cities = [
  {id:'takamatsu',name:'高松',en:'Takamatsu',country:'japan',region:'日本 · 香川',lat:34.3428,lon:134.0466,landmark:'栗林公园',model:'garden',image:'images/takamatsu-station.jpg',
-  photos:['images/takamatsu-station.jpg', 'images/takamatsu-airport-bus.jpg', 'images/takamatsu-railway.jpg'],
+  photos:['images/takamatsu-station.jpg', 'images/takamatsu-airport-bus.jpg'],
   livePhotos:{
    'images/takamatsu-station.jpg':'images/takamatsu-station-live.mp4',
    'images/takamatsu-airport-bus.jpg':'images/takamatsu-airport-bus-live.mp4'
   },
-  story:'从高松机场的呆呆兽巴士，到高松站外的笑脸和铁轨。'},
+  story:'从高松机场的呆呆兽巴士，到高松站外的笑脸。'},
  {id:'teriberka',name:'捷里别尔卡',en:'Teriberka',country:'russia',region:'俄罗斯 · 巴伦支海',lat:69.1692,lon:35.1220,landmark:'沉船遗迹',model:'ship',image:'images/teriberka-boat.jpg',
   photos:['images/teriberka-boat.jpg', 'images/teriberka-fishing-boat.jpg', 'images/teriberka-road-sign.jpg'],
   livePhotos:{
@@ -78,7 +78,7 @@ export const cities = [
   },
   story:'在京都拍下清水寺的朱红屋檐、伏见稻荷的灯笼，还有从山门望出去的城市。'},
  {id:'fukuoka',name:'福冈',en:'Fukuoka',together:true,country:'japan',region:'日本 · 九州',lat:33.5902,lon:130.4017,landmark:'福冈塔',model:'glass',image:'images/fukuoka.jpg',story:'一页属于福冈的旅行手记。从看过的风景开始，慢慢整理值得分享的路线和故事。'},
- {id:'kumamoto',name:'熊本',en:'Kumamoto',country:'japan',region:'日本 · 九州',lat:32.8032,lon:130.7073,landmark:'熊本城',model:'castle',image:'images/fukuoka.jpg',story:'在九州的旅行地图上标记熊本。照片和游记待整理。'},
+ {id:'kumamoto',name:'熊本',en:'Kumamoto',together:true,country:'japan',region:'日本 · 九州',lat:32.8032,lon:130.7073,landmark:'熊本城',model:'castle',story:'在九州的旅行地图上标记熊本。游记待整理。'},
  {id:'takamori',name:'高森',en:'Takamori',country:'japan',region:'日本 · 熊本',lat:32.8545,lon:131.1587,landmark:'上色见熊野座神社',model:'temple',image:'images/takamori-shrine-gate.jpg',
   photos:['images/takamori-shrine-gate.jpg', 'images/takamori-shrine-hall.jpg'],
   story:'雨雾里，石灯笼沿着参道排开，走过鸟居就是上色见熊野座神社的拜殿。'},
@@ -90,10 +90,21 @@ export const cities = [
   },
   story:'从岩户的急流走到高千穗峡，看瀑布沿着雨中的岩壁落下。'},
  {id:'minamiaso',name:'南阿苏',en:'Minamiaso',country:'japan',region:'日本 · 熊本',lat:32.8846,lon:131.0568,landmark:'草千里',model:'garden',image:'images/minamiaso-kusasenri.jpg',
-  photos:['images/minamiaso-kusasenri.jpg'],
-  livePhotos:{'images/minamiaso-kusasenri.jpg':'images/minamiaso-kusasenri-live.mp4'},
-  story:'草千里的风吹过草坡，云影落在水面上。'},
- {id:'minamioguni',name:'南小国',en:'Minamioguni',country:'japan',region:'日本 · 熊本',lat:33.0766,lon:131.1507,landmark:'满愿寺地区',model:'neighborhood',image:'images/minamioguni-mountain-window.jpg',
+  photos:['images/minamiaso-kusasenri.jpg', 'images/minamiaso-volcano-museum.jpg'],
+  livePhotos:{
+   'images/minamiaso-kusasenri.jpg':'images/minamiaso-kusasenri-live.mp4',
+   'images/minamiaso-volcano-museum.jpg':'images/minamiaso-volcano-museum-live.mp4'
+  },
+  story:'草千里的风吹过草坡，云影落在水面上。阿苏火山博物馆的展板上，可以从空中看见火山口。'},
+ {id:'ozu',name:'大津',en:'Ozu',together:true,country:'japan',region:'日本 · 熊本',lat:32.8773,lon:130.8660,landmark:'肥后大津站',model:'neighborhood',image:'images/ozu-station-kumamon.jpg',
+  photos:['images/ozu-station-kumamon.jpg'],
+  livePhotos:{'images/ozu-station-kumamon.jpg':'images/ozu-station-kumamon-live.mp4'},
+  story:'肥后大津站南口，穿蓝色制服的熊本熊站在门前迎客。'},
+ {id:'koshi',name:'合志',en:'Koshi',together:true,country:'japan',region:'日本 · 熊本',lat:32.8947,lon:130.7195,landmark:'北熊本服务区',model:'neighborhood',image:'images/koshi-service-area-kumamon.jpg',
+  photos:['images/koshi-service-area-kumamon.jpg'],
+  livePhotos:{'images/koshi-service-area-kumamon.jpg':'images/koshi-service-area-kumamon-live.mp4'},
+  story:'在合志的北熊本服务区歇脚，门口的熊本熊身上还挂着雨珠。'},
+ {id:'minamioguni',name:'南小国',en:'Minamioguni',together:true,country:'japan',region:'日本 · 熊本',lat:33.0766,lon:131.1507,landmark:'满愿寺地区',model:'neighborhood',image:'images/minamioguni-mountain-window.jpg',
   photos:['images/minamioguni-mountain-window.jpg'],
   livePhotos:{'images/minamioguni-mountain-window.jpg':'images/minamioguni-mountain-window-live.mp4'},
   story:'南小国满愿寺地区，窗前排着一列酒瓶，窗外是被阳光照亮的山坡。'},

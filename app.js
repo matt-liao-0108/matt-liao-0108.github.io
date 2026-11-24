@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import { cities } from './data/cities.js?v=20261124-1';
+import { cities } from './data/cities.js?v=20261124-6';
 import { createCountryLayer } from './country-layer.js';
 import { createWeatherLayer } from './weather.js';
 
@@ -131,11 +131,16 @@ function visibleCities() {
   return countryOrder.flatMap(country => activeFilter === 'all' || activeFilter === country
     ? cities.filter(city => city.country === country) : []);
 }
+function setCityImage(image, city) {
+  image.hidden = !city.image;
+  if (city.image) image.src = city.image;
+  else image.removeAttribute('src');
+  image.alt = !city.image ? '' : `${city.name}${city.photos?.length ? '旅行照片' : '相册占位示例'}`;
+}
 function selectCity(city) {
   selected = city;
-  $('preview-image').src = city.image;
-  $('preview-image').alt = city.photos?.length ? `${city.name}旅行照片` : `${city.name}相册占位示例照片`;
-  $('preview-photo-note').hidden = Boolean(city.photos?.length);
+  setCityImage($('preview-image'), city);
+  $('preview-photo-note').hidden = !city.image || Boolean(city.photos?.length);
   $('preview-photo').setAttribute('aria-label', `打开${city.name}手记`);
   $('preview-country').textContent = city.region;
   $('preview-title').replaceChildren(document.createTextNode(city.name));
@@ -152,14 +157,16 @@ function switchTab(tab) {
 function openCity() {
   const c = selected;
   const hasTripPhotos = Boolean(c.photos?.length);
-  $('city-cover').src = c.image;
-  $('city-cover').alt = hasTripPhotos ? `${c.name}旅行照片` : `${c.name}相册占位示例`;
-  $('city-cover-note').hidden = hasTripPhotos;
-  $('city-placeholder-note').hidden = hasTripPhotos;
+  const examplePhoto = {japan: 'images/osaka.jpg', russia: 'images/saint-petersburg.jpg', thailand: 'images/bangkok.jpg'};
+  const photos = c.photos ?? (c.image ? [c.image, examplePhoto[c.country]] : []);
+  setCityImage($('city-cover'), c);
+  $('city-cover-note').hidden = !c.image || hasTripPhotos;
+  const photoNote = $('city-placeholder-note');
+  photoNote.hidden = hasTripPhotos;
+  photoNote.textContent = photos.length ? '这些照片暂作排版占位。我的旅途照片和具体故事，会在这里陆续补上。' : '暂无旅行照片。';
   $('city-region').textContent = c.region; $('city-dialog-title').textContent = c.name; $('city-english').textContent = c.en;
   $('city-coordinates').textContent = coordinates(c); $('city-lead').textContent = c.story;
   $('city-landmark').textContent = `星球上的小建筑 · ${c.landmark}`;
-  const photos = hasTripPhotos ? c.photos : [c.image, c.country === 'japan' ? 'images/osaka.jpg' : c.country === 'russia' ? 'images/saint-petersburg.jpg' : 'images/bangkok.jpg'];
   $('city-photos').replaceChildren(...photos.map((src, i) => {
     const figure = document.createElement('figure'); const img = document.createElement('img'); img.src = src; img.alt = `${c.name}${hasTripPhotos ? '旅行照片' : '相册占位照片'} ${i + 1}`; img.loading = 'lazy';
     const cap = document.createElement('figcaption'); cap.textContent = hasTripPhotos ? `${c.name} · 旅行实拍` : `旅行相册 ${String(i + 1).padStart(2, '0')} · 示例占位`;
