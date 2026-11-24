@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import { cities } from './data/cities.js?v=20261120-2';
+import { cities } from './data/cities.js?v=20261124-1';
 import { createCountryLayer } from './country-layer.js';
 import { createWeatherLayer } from './weather.js';
 

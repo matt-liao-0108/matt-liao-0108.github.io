@@ -8,10 +8,11 @@ export const cities = [
   },
   story:'从高松机场的呆呆兽巴士，到高松站外的笑脸和铁轨。'},
  {id:'teriberka',name:'捷里别尔卡',en:'Teriberka',country:'russia',region:'俄罗斯 · 巴伦支海',lat:69.1692,lon:35.1220,landmark:'沉船遗迹',model:'ship',image:'images/teriberka-boat.jpg',
-  photos:['images/teriberka-boat.jpg', 'images/teriberka-fishing-boat.jpg'],
+  photos:['images/teriberka-boat.jpg', 'images/teriberka-fishing-boat.jpg', 'images/teriberka-road-sign.jpg'],
   livePhotos:{
    'images/teriberka-boat.jpg':'images/teriberka-boat-live.mp4',
-   'images/teriberka-fishing-boat.jpg':'images/teriberka-fishing-boat-live.mp4'
+   'images/teriberka-fishing-boat.jpg':'images/teriberka-fishing-boat-live.mp4',
+   'images/teriberka-road-sign.jpg':'images/teriberka-road-sign-live.mp4'
   },
   story:'为巴伦支海边的捷里别尔卡留下一页，从一张船舱里的照片开始。'},
  {id:'sapporo',name:'札幌',en:'Sapporo',together:true,country:'japan',region:'日本 · 北海道',lat:43.0621,lon:141.3544,landmark:'札幌钟楼',model:'clock',image:'images/sapporo-3447.jpg',photos:['images/sapporo-3447.jpg', 'images/sapporo-3428.jpg', 'images/sapporo-3425.jpg', 'images/sapporo-3705.jpg'],livePhotos:{'images/sapporo-3447.jpg':'images/sapporo-3447-live.mp4','images/sapporo-3428.jpg':'images/sapporo-3428-live.mp4','images/sapporo-3425.jpg':'images/sapporo-3425-live.mp4','images/sapporo-3705.jpg':'images/sapporo-3705-live.mp4'},story:'札幌，是北海道旅程里亮起的一束光。关于街道、风景和路上的小事，我想在这里慢慢记下。'},
@@ -117,10 +118,13 @@ export const cities = [
   },
   story:'在莫斯科留下脚印。雪后的红场、圣瓦西里大教堂，还有克里姆林宫墙边走过的卫兵。'},
  {id:'saint-petersburg',name:'圣彼得堡',en:'St. Petersburg',country:'russia',region:'俄罗斯 · 涅瓦河畔',lat:59.9311,lon:30.3609,landmark:'圣以撒大教堂',model:'dome',image:'images/petersburg-kazan.jpg',
-  photos:['images/petersburg-kazan.jpg', 'images/petersburg-museum-lion.jpg', 'images/petersburg-spilled-blood.jpg'],
+  photos:['images/petersburg-kazan.jpg', 'images/petersburg-museum-lion.jpg',
+   'images/petersburg-red-drawing-room.jpg', 'images/petersburg-madonna.jpg', 'images/petersburg-spilled-blood.jpg'],
   livePhotos:{
    'images/petersburg-kazan.jpg':'images/petersburg-kazan-live.mp4',
    'images/petersburg-museum-lion.jpg':'images/petersburg-museum-lion-live.mp4',
+   'images/petersburg-red-drawing-room.jpg':'images/petersburg-red-drawing-room-live.mp4',
+   'images/petersburg-madonna.jpg':'images/petersburg-madonna-live.mp4',
    'images/petersburg-spilled-blood.jpg':'images/petersburg-spilled-blood-live.mp4'
   },
   story:'从喀山大教堂走到博物馆的拱廊，最后在积雪的运河边望见滴血救世主教堂。'},
